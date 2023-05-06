@@ -94,17 +94,14 @@ def depthFirstSearch(problem: SearchProblem):
     while not frontier.isEmpty():
         node = frontier.pop()
 
-        if problem.isGoalState(node.location):
+        if problem.isGoalState(node.game_state):
             return list(node.actions)
 
-        # Slight modification: we check whether the successors have already been
-        # reached instead of the current node, when appending successors to frontier.
-        # This aims to reduce the amount of unnecessary appends.
-        reached.add(node.location)
-        for successor_location, successor_action, _ in problem.getSuccessors(node.location):
-            if successor_location not in reached:
+        if node.game_state not in reached:
+            reached.add(node.game_state)
+            for successor_game_state, successor_action, _ in problem.getSuccessors(node.game_state):
                 new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
-                new_node = Node(new_node_actions, successor_location)
+                new_node = Node(new_node_actions, successor_game_state)
                 frontier.push(new_node)
 
     return None
@@ -130,17 +127,14 @@ def breadthFirstSearch(problem: SearchProblem):
     while not frontier.isEmpty():
         node = frontier.pop()
 
-        if problem.isGoalState(node.location):
+        if problem.isGoalState(node.game_state):
             return list(node.actions)
 
-        # Slight modification: we check whether the successors have already been
-        # reached instead of the current node, when appending successors to frontier.
-        # This aims to reduce the amount of unnecessary appends.
-        reached.add(node.location)
-        for successor_location, successor_action, _ in problem.getSuccessors(node.location):
-            if successor_location not in reached:
+        if node.game_state not in reached:
+            reached.add(node.game_state)
+            for successor_game_state, successor_action, _ in problem.getSuccessors(node.game_state):
                 new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
-                new_node = Node(new_node_actions, successor_location)
+                new_node = Node(new_node_actions, successor_game_state)
                 frontier.push(new_node)
 
     return None
@@ -164,19 +158,16 @@ def uniformCostSearch(problem: SearchProblem):
     while not frontier.isEmpty():
         node = frontier.pop()
 
-        if problem.isGoalState(node.location):
+        if problem.isGoalState(node.game_state):
             return list(node.actions)
 
-        # Slight modification: we check whether the successors have already been
-        # reached instead of the current node, when appending successors to frontier.
-        # This aims to reduce the amount of unnecessary appends.
-        reached.add(node.location)
-        for successor_location, successor_action, successor_cost in problem.getSuccessors(node.location):
-            if successor_location not in reached:
+        if node.game_state not in reached:
+            reached.add(node.game_state)
+            for successor_game_state, successor_action, successor_cost in problem.getSuccessors(node.game_state):
                 new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
                 new_node_cost = node.cost + successor_cost
 
-                new_node = Node(new_node_actions, successor_location, new_node_cost)
+                new_node = Node(new_node_actions, successor_game_state, new_node_cost)
                 frontier.update(new_node, new_node_cost)
 
     return None
@@ -210,21 +201,18 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     while not frontier.isEmpty():
         node = frontier.pop()
 
-        if problem.isGoalState(node.location):
+        if problem.isGoalState(node.game_state):
             return list(node.actions)
 
-        # Slight modification: we check whether the successors have already been
-        # reached instead of the current node, when appending successors to frontier.
-        # This aims to reduce the amount of unnecessary appends.
-        reached.add(node.location)
-        for successor_location, successor_action, successor_cost in problem.getSuccessors(node.location):
-            if successor_location not in reached:
+        if node.game_state not in reached:
+            reached.add(node.game_state)
+            for successor_game_state, successor_action, successor_cost in problem.getSuccessors(node.game_state):
                 new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
                 new_node_cost = node.cost + successor_cost
 
-                new_node_priority = new_node_cost + heuristic(successor_location, problem)
+                new_node_priority = new_node_cost + heuristic(successor_game_state, problem)
 
-                new_node = Node(new_node_actions, successor_location, new_node_cost)
+                new_node = Node(new_node_actions, successor_game_state, new_node_cost)
                 frontier.update(new_node, new_node_priority)  # Note: node priority is different from node cost
 
     return None
@@ -244,16 +232,16 @@ ucs = uniformCostSearch
 @dataclass
 class Node:
     """
-    Node represents a search node in a graph search for pac-man. A node stores the location represented by two integer
-    coordinates, the actions needed to get to said location, as well as the cost to move to the location from start.
+    Node represents a search node in a graph search for pac-man. A node stores the game_state represented by two integer
+    coordinates, the actions needed to get to said game_state, as well as the cost to move to the game_state from start.
 
     Two nodes are considered the same if their locations are the same.
 
     Note that we essentially abuse a property from PriorityQueue in util, where if we have two nodes with the same
-    location, the one with the lowest cost (and thus lowest priority) will stay in the PriorityQueue. This means that
-    the actions saved in the node for that location, are the actions with the lowest cost to get there.
+    game_state, the one with the lowest cost (and thus lowest priority) will stay in the PriorityQueue. This means that
+    the actions saved in the node for that game_state, are the actions with the lowest cost to get there.
     """
 
     actions: tuple = field(default=tuple(), compare=False)
-    location: tuple = field(default=(0, 0))
+    game_state: object = field(default=None)
     cost: int = field(default=0, compare=False)
