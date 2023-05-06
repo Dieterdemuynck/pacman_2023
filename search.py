@@ -18,6 +18,8 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+from dataclasses import dataclass, field
+
 
 class SearchProblem:
     """
@@ -27,11 +29,12 @@ class SearchProblem:
     You do not need to change anything in this class, ever.
     """
 
-    def getStartState(self):
+    def getStartState(self) -> tuple:
         """
         Returns the start state for the search problem.
         """
         util.raiseNotDefined()
+        return 0, 0  # Appended to get rid of warnings
 
     def isGoalState(self, state):
         """
@@ -41,7 +44,7 @@ class SearchProblem:
         """
         util.raiseNotDefined()
 
-    def getSuccessors(self, state):
+    def getSuccessors(self, state) -> list:
         """
           state: Search state
 
@@ -51,6 +54,7 @@ class SearchProblem:
         the incremental cost of expanding to that successor.
         """
         util.raiseNotDefined()
+        return []  # Appended to get rid of warnings
 
     def getCostOfActions(self, actions):
         """
@@ -70,34 +74,113 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem: SearchProblem):
     """
-    Search the deepest nodes in the search tree first.
+    Finds the route to a goal state of the problem using the depth first tree search algorithm, with loop detection.
+    Returns a list of actions (e.g. "North", "West", "South", "East")
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
-
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
-
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
+    :param problem: The search problem
+    :return:        List of actions that lead from the start state of the problem to a goal state
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    # Applying the general tree search algorithm, with loop detection:
+    frontier = util.Stack()
+    frontier.push(Node(tuple(), problem.getStartState()))
+    reached = set()
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+
+        if problem.isGoalState(node.location):
+            return list(node.actions)
+
+        # Slight modification: we check whether the successors have already been
+        # reached instead of the current node, when appending successors to frontier.
+        # This aims to reduce the amount of unnecessary appends.
+        reached.add(node.location)
+        for successor_location, successor_action, _ in problem.getSuccessors(node.location):
+            if successor_location not in reached:
+                new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
+                new_node = Node(new_node_actions, successor_location)
+                frontier.push(new_node)
+
+    return None
+
 
 def breadthFirstSearch(problem: SearchProblem):
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Finds the route to a goal state of the problem using the breadth first tree search algorithm, with loop detection.
+    Returns a list of actions (e.g. "North", "West", "South", "East")
+
+    :param problem: The search problem
+    :return:        List of actions that lead from the start state of the problem to a goal state
+    """
+
+    # Since I've only got a weekend for this project, rather than writing a new function which generalises these
+    # functions, simply copying previously written code and slightly altering it will have to do.
+
+    # Applying the general tree search algorithm, with loop detection:
+    frontier = util.Queue()
+    frontier.push(Node(tuple(), problem.getStartState()))
+    reached = set()
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+
+        if problem.isGoalState(node.location):
+            return list(node.actions)
+
+        # Slight modification: we check whether the successors have already been
+        # reached instead of the current node, when appending successors to frontier.
+        # This aims to reduce the amount of unnecessary appends.
+        reached.add(node.location)
+        for successor_location, successor_action, _ in problem.getSuccessors(node.location):
+            if successor_location not in reached:
+                new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
+                new_node = Node(new_node_actions, successor_location)
+                frontier.push(new_node)
+
+    return None
+
 
 def uniformCostSearch(problem: SearchProblem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Finds the route to a goal state of the problem using the uniform cost tree search algorithm, with loop detection.
+    Returns a list of actions (e.g. "North", "West", "South", "East")
+
+    :param problem: The search problem
+    :return:        List of actions that lead from the start state of the problem to a goal state
+    """
+
+    # Once again, simply copying and adjusting previous code.
+    # Applying the general tree search algorithm, with loop detection:
+    frontier = util.PriorityQueue()
+    frontier.push(Node(tuple(), problem.getStartState()), 0)
+    reached = set()
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+
+        if problem.isGoalState(node.location):
+            return list(node.actions)
+
+        # Slight modification: we check whether the successors have already been
+        # reached instead of the current node, when appending successors to frontier.
+        # This aims to reduce the amount of unnecessary appends.
+        reached.add(node.location)
+        for successor_location, successor_action, successor_cost in problem.getSuccessors(node.location):
+            if successor_location not in reached:
+                new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
+                new_node_cost = node.cost + successor_cost
+
+                new_node = Node(new_node_actions, successor_location, new_node_cost)
+                frontier.update(new_node, new_node_cost)
+
+    return None
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -106,10 +189,45 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Finds the route to a goal state of the problem using the A* tree search algorithm, with loop detection. Assumes the
+    given heuristic is consistent.
+    Returns a list of actions (e.g. "North", "West", "South", "East")
+
+    :param problem:     The search problem
+    :param heuristic:   The heuristic used in the A* algorithm to represent "distance from goal". MUST be consistent.
+    :return:            List of actions that lead from the start state of the problem to a goal state
+    """
+
+    # Once again, simply copying and adjusting previous code.
+    # Applying the general tree search algorithm, with loop detection:
+    frontier = util.PriorityQueue()
+    frontier.push(Node(tuple(), problem.getStartState()), 0)
+    reached = set()
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+
+        if problem.isGoalState(node.location):
+            return list(node.actions)
+
+        # Slight modification: we check whether the successors have already been
+        # reached instead of the current node, when appending successors to frontier.
+        # This aims to reduce the amount of unnecessary appends.
+        reached.add(node.location)
+        for successor_location, successor_action, successor_cost in problem.getSuccessors(node.location):
+            if successor_location not in reached:
+                new_node_actions = node.actions + (successor_action,)  # Creates a tuple with one extra element
+                new_node_cost = node.cost + successor_cost
+
+                new_node_priority = new_node_cost + heuristic(successor_location, problem)
+
+                new_node = Node(new_node_actions, successor_location, new_node_cost)
+                frontier.update(new_node, new_node_priority)  # Note: node priority is different from node cost
+
+    return None
 
 
 # Abbreviations
@@ -117,3 +235,25 @@ bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch
 ucs = uniformCostSearch
+
+
+###################################
+# Self-defined classes/algorithms #
+###################################
+
+@dataclass
+class Node:
+    """
+    Node represents a search node in a graph search for pac-man. A node stores the location represented by two integer
+    coordinates, the actions needed to get to said location, as well as the cost to move to the location from start.
+
+    Two nodes are considered the same if their locations are the same.
+
+    Note that we essentially abuse a property from PriorityQueue in util, where if we have two nodes with the same
+    location, the one with the lowest cost (and thus lowest priority) will stay in the PriorityQueue. This means that
+    the actions saved in the node for that location, are the actions with the lowest cost to get there.
+    """
+
+    actions: tuple = field(default=tuple(), compare=False)
+    location: tuple = field(default=(0, 0))
+    cost: int = field(default=0, compare=False)
