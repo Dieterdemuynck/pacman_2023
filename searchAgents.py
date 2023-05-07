@@ -293,7 +293,7 @@ class CornersProblem(search.SearchProblem):
         self.walls = startingGameState.getWalls()
         self.startingPosition = startingGameState.getPacmanPosition()
         top, right = self.walls.height-2, self.walls.width-2
-        self.corners = {(1, 1), (1, top), (right, 1), (right, top)}  # Changed to set
+        self.corners = ((1, 1), (1, top), (right, 1), (right, top))
         for corner in self.corners:
             if not startingGameState.hasFood(*corner):
                 print('Warning: no food in corner ' + str(corner))
@@ -313,7 +313,7 @@ class CornersProblem(search.SearchProblem):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        return set(state.corners_hit) == self.corners
+        return state.corners_hit == set(self.corners)
 
     def getSuccessors(self, state: "CornerProblemGameState"):
         """
@@ -337,22 +337,22 @@ class CornersProblem(search.SearchProblem):
 
             if not hits_wall:
                 successor_location = next_x, next_y
-                self._append_new_successor(state=state, successors_list=successors,
-                                           successor_location=successor_location, action=action)
+                successor_data = self._create_new_successor(state=state, successor_location=successor_location,
+                                                            action=action)
+                successors.append(successor_data)
 
         self._expanded += 1  # DO NOT CHANGE
         # Change is necessary to improve as a person... But okay, for now I won't, have a good day =)
         return successors
 
-    def _append_new_successor(self, *, state, successors_list, successor_location, action, step_cost=1):
+    def _create_new_successor(self, *, state, successor_location, action, step_cost=1):
         successor_corners_hit = state.corners_hit
         if successor_location in self.corners:
             # appends corner to successor's corners hit.
             successor_corners_hit = successor_corners_hit.union({successor_location})
 
         successor_state = self.CornerProblemGameState(successor_location, successor_corners_hit)
-        successor = (successor_state, action, step_cost)
-        successors_list.append(successor)
+        return successor_state, action, step_cost
 
     def getCostOfActions(self, actions):
         """
@@ -401,7 +401,7 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
 
 
 class AStarCornersAgent(SearchAgent):
-    "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
+    """A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"""
     def __init__(self):
         self.searchFunction = lambda prob: search.aStarSearch(prob, cornersHeuristic)
         self.searchType = CornersProblem
@@ -430,7 +430,7 @@ class FoodSearchProblem:
         return state[1].count() == 0
 
     def getSuccessors(self, state):
-        "Returns successor states, the actions they require, and a cost of 1."
+        """Returns successor states, the actions they require, and a cost of 1."""
         successors = []
         self._expanded += 1 # DO NOT CHANGE
         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
@@ -459,7 +459,7 @@ class FoodSearchProblem:
 
 
 class AStarFoodSearchAgent(SearchAgent):
-    "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
+    """A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"""
     def __init__(self):
         self.searchFunction = lambda prob: search.aStarSearch(prob, foodHeuristic)
         self.searchType = FoodSearchProblem
@@ -499,7 +499,7 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
 
 
 class ClosestDotSearchAgent(SearchAgent):
-    "Search for all food using a sequence of searches"
+    """Search for all food using a sequence of searches"""
     def registerInitialState(self, state):
         self.actions = []
         currentState = state
@@ -546,7 +546,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     """
 
     def __init__(self, gameState):
-        "Stores information from the gameState.  You don't need to change this."
+        """Stores information from the gameState.  You don't need to change this."""
         # Store the food for later reference
         self.food = gameState.getFood()
 
@@ -554,14 +554,14 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         self.walls = gameState.getWalls()
         self.startState = gameState.getPacmanPosition()
         self.costFn = lambda x: 1
-        self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+        self._visited, self._visitedlist, self._expanded = {}, [], 0  # DO NOT CHANGE
 
     def isGoalState(self, state: Tuple[int, int]):
         """
         The state is Pacman's position. Fill this in with a goal test that will
         complete the problem definition.
         """
-        x,y = state
+        x, y = state
 
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
