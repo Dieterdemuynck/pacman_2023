@@ -272,7 +272,7 @@ def euclideanHeuristic(position, problem, info={}):  # Are these... mutable defa
     """The Euclidean distance heuristic for a PositionSearchProblem"""
     xy1 = position
     xy2 = problem.goal
-    return ( (xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2 ) ** 0.5
+    return ((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2) ** 0.5
 
 
 #####################################################
@@ -370,7 +370,7 @@ class CornersProblem(search.SearchProblem):
 
         return len(actions)
 
-    @dataclass(frozen=True, eq=True, )
+    @dataclass(frozen=True, eq=True)
     class CornerProblemGameState:
         """
         Game state for the Corner Problem. This contains not only the location, but also which corners have already been
@@ -380,7 +380,7 @@ class CornersProblem(search.SearchProblem):
         corners_hit: frozenset
 
 
-def cornersHeuristic(state: Any, problem: CornersProblem):
+def cornersHeuristic(state: CornersProblem.CornerProblemGameState, problem: CornersProblem):
     """
     A heuristic for the CornersProblem that you defined.
 
@@ -393,11 +393,79 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     shortest path from the state to a goal of the problem; i.e.  it should be
     admissible (as well as consistent).
     """
-    corners = problem.corners  # These are the corner coordinates
+    corners = set(problem.corners)  # These are the corner coordinates
     walls = problem.walls  # These are the walls of the maze, as a Grid (game.py)
 
-    "*** YOUR CODE HERE ***"
-    return 0  # Default to trivial solution
+    # My approach:
+    # Find the smallest manhattan distance needed to travel to reach each corner.
+    height, width = problem.walls.height-2, problem.walls.width-2
+    corners_to_hit = set(corners).difference(state.corners_hit)
+
+    return _corner_distance(state.location, corners_to_hit, height=height, width=width)
+
+
+def _corner_distance(current_location: tuple, corners_to_hit, height, width):
+    """
+    Calculates the minimum manhattan distance to travel to reach each corner in corners_to_hit, from current_location.
+    This isn't my proudest achievement of a function, but it works.
+
+    :param current_location: A tuple (x, y) representing the coordinates of pac-man's current location
+    :param corners_to_hit:   An iterable of tuples representing the coordinates of the corners yet to be hit. These
+                             corners MUST make a rectangle.
+    :return:     The minimum manhattan distance to reach each corner yet to be hit.
+    """
+    if len(corners_to_hit) == 0:
+        return 0
+
+    corners = list(corners_to_hit)
+    distance_pacman_to_corner = (util.manhattanDistance(corner, current_location)
+                                 for corner in corners)
+    short_side_length = min(height, width)
+    long_side_length = max(height, width)
+
+    if len(corners) == 4:
+        # Reminder: distance to travel is one less than the length, e.g. from 1 to 5 requires 4 steps, but is 5 long.
+        return min(distance_pacman_to_corner) + 2*(short_side_length-1) + long_side_length - 1
+    if len(corners) == 3:
+        # "Inner" corner has no effect, remove this from the list and find closest "outer" corner instead
+        if corners[0][0] != corners[1][0] and corners[0][1] != corners[1][1]:
+            # corners 0 and 1 are outer corners
+            corners.pop(2)
+        elif corners[0][0] != corners[2][0] and corners[0][1] != corners[2][1]:
+            # corners 0 and 2 are outer corners
+            corners.pop(1)
+        else:
+            # corners 1 and 2 are outer corners
+            corners.pop(0)
+        return min(distance_pacman_to_corner) + short_side_length + long_side_length - 2
+    if len(corners) == 2:
+        return min(distance_pacman_to_corner) + util.manhattanDistance(*corners)
+
+    # There is only one corner
+    return next(distance_pacman_to_corner)
+
+
+# I had assumed I'd have to use the information about the walls to get a full grade. Turns out, the problem was simpler
+# than that. Haha.
+#
+# class _CornersHeuristicProblemData:
+#     """
+#     This class uses the Singleton design pattern, and aims to simplify calculations for the cornersHeuristic function
+#     by calculating specific values first, and then simply referring to them afterwards.
+#
+#     THIS CLASS SHOULD NEVER BE INSTANTIATED BY THE USER.
+#     """
+#
+#     _instance = None
+#
+#     def __init__(self, problem):
+#         self.problem = problem
+#
+#     @classmethod
+#     def get_instance(cls, problem):
+#         if cls._instance is None or cls._instance.problem is not problem:
+#             cls._instance = cls(problem)
+#         return cls._instance
 
 
 class AStarCornersAgent(SearchAgent):
@@ -420,8 +488,8 @@ class FoodSearchProblem:
         self.start = (startingGameState.getPacmanPosition(), startingGameState.getFood())
         self.walls = startingGameState.getWalls()
         self.startingGameState = startingGameState
-        self._expanded = 0 # DO NOT CHANGE
-        self.heuristicInfo = {} # A dictionary for the heuristic to store information
+        self._expanded = 0  # DO NOT CHANGE
+        self.heuristicInfo = {}  # A dictionary for the heuristic to store information
 
     def getStartState(self):
         return self.start
@@ -432,21 +500,21 @@ class FoodSearchProblem:
     def getSuccessors(self, state):
         """Returns successor states, the actions they require, and a cost of 1."""
         successors = []
-        self._expanded += 1 # DO NOT CHANGE
+        self._expanded += 1  # DO NOT CHANGE
         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            x,y = state[0]
+            x, y = state[0]
             dx, dy = Actions.directionToVector(direction)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
                 nextFood = state[1].copy()
                 nextFood[nextx][nexty] = False
-                successors.append( ( ((nextx, nexty), nextFood), direction, 1) )
+                successors.append((((nextx, nexty), nextFood), direction, 1))
         return successors
 
     def getCostOfActions(self, actions):
         """Returns the cost of a particular sequence of actions.  If those actions
         include an illegal move, return 999999"""
-        x,y= self.getStartState()[0]
+        x, y = self.getStartState()[0]
         cost = 0
         for action in actions:
             # figure out the next state and see whether it's legal
