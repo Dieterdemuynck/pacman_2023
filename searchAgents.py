@@ -34,15 +34,17 @@ description for details.
 Good luck and happy searching!
 """
 
-from typing import List, Tuple, Any
+from typing import Tuple
 from game import Directions
 from game import Agent
 from game import Actions
+from game import Grid
 import util
 import time
 import search
 import pacman
 from dataclasses import dataclass
+from math import sqrt
 
 
 class GoWestAgent(Agent):
@@ -533,7 +535,7 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchType = FoodSearchProblem
 
 
-def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
+def foodHeuristic(state: Tuple[Tuple, Grid], problem: FoodSearchProblem):
     """
     Your heuristic for the FoodSearchProblem goes here.
 
@@ -561,9 +563,84 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    # Idea: create a minimal spanning tree (MST) between the pellets and pacman. The cost will be the total weight
+    # of this tree.
+    # I have thought of a marvelous proof for the consistency of this heuristic, but python comments are too narrow to
+    # type it out. It is, however, trivial, and as such is left as an exercise for the reader.
+    position, food_grid = state
+
+    # Nodes are all pellet locations, plus Pac-man's position
+    nodes = food_grid.asList()
+    nodes.append(position)
+
+    # Construct graph and apply prim's algorithm
+    graph = Graph(nodes)
+    graph.apply_prim()
+
+    # return total weight of MST
+    return graph.get_total_weight()
+
+
+def euclidian_distance(xy1, xy2):
+    x1, y1 = xy1
+    x2, y2 = xy2
+    return sqrt((x1-x2)**2 + (y1-y2)**2)
+
+
+class Graph:
+    """
+    A Graph which takes in the nodes, and an optional weight function. An adjacency matrix is created, linking every
+    node to every other node, and adds a weight to that (undirected) edge equal to the weigh function applied to both
+    nodes.
+
+    This Graph class also implements prim's algorithms to convert the graph to a minimal spanning tree of the graph. It
+    also implements a method to get the total weight of this (undirected) graph
+
+    This class and relative functions are based on the code at:
+    https://stackabuse.com/courses/graphs-in-python-theory-and-implementation/lessons/minimum-spanning-trees-prims-algorithm/
+    """
+    def __init__(self, nodes, weight_function=euclidian_distance):
+        self.node_count = len(nodes)
+
+        # Construct the adjacency matrix
+        self.adjacency_matrix = [[0 for _ in range(self.node_count)] for _ in range(self.node_count)]
+
+        for i, node1 in enumerate(nodes):
+            for j, node2 in enumerate(nodes):
+                self.adjacency_matrix[i][j] = weight_function(node1, node2)
+
+    def apply_prim(self):
+        """Applies prim's algorithm to this graph, and updates the adjacency matrix accordingly."""
+        inf = float("inf")
+        selected_nodes = [False for _ in range(self.node_count)]
+
+        result = [[0 for _ in range(self.node_count)] for _ in range(self.node_count)]
+        start, end = 0, 0  # start and end indicate the index of the starting and ending node of a new edge
+
+        # oof, look at this nesting... disgusting.
+        while False in selected_nodes:
+            cheapest = inf
+
+            for i in range(self.node_count):
+                if selected_nodes[i]:
+                    for j in range(self.node_count):
+                        if not selected_nodes[j] and 0 < self.adjacency_matrix[i][j] < cheapest:
+                            cheapest = self.adjacency_matrix[i][j]
+                            start, end = i, j
+
+            selected_nodes[end] = True
+            result[start][end] = cheapest
+            result[end][start] = result[start][end]
+
+            # Technically irrelevant, adding for completeness
+            # I'd also think this could break the algorithm, since end never updates if this statement is true...?
+            if cheapest == inf:
+                result[start][end] = 0
+
+        self.adjacency_matrix = result
+
+    def get_total_weight(self):
+        return sum(sum(self.adjacency_matrix[i]) for i in range(self.node_count)) / 2
 
 
 class ClosestDotSearchAgent(SearchAgent):
