@@ -665,14 +665,8 @@ class ClosestDotSearchAgent(SearchAgent):
         Returns a path (a list of actions) to the closest dot, starting from
         gameState.
         """
-        # Here are some useful elements of the startState
-        startPosition = gameState.getPacmanPosition()
-        food = gameState.getFood()
-        walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
-
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.aStarSearch(problem, minimum_manhattan_heuristic)
 
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -707,9 +701,21 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         complete the problem definition.
         """
         x, y = state
+        return self.food[x][y]
 
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+def minimum_manhattan_heuristic(position, problem: AnyFoodSearchProblem):
+    minimum_distance = float("inf")
+    x, y = position
+
+    for pellet_location in problem.food.asList():
+        x_pellet, y_pellet = pellet_location
+        distance_to_pellet = abs(x - x_pellet) + abs(y - y_pellet)
+        minimum_distance = min(minimum_distance, distance_to_pellet)
+
+    if minimum_distance == float("inf"):
+        return 0  # There are no food pellets left. Assume goal state is different, apply UCS instead (uninformed).
+    return minimum_distance
 
 
 def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int], gameState: pacman.GameState) -> int:
